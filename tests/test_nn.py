@@ -42,5 +42,23 @@ class TestLinear(TestLSTM):
         self.assertTrue(np.allclose(co.data, to.data.numpy()), 'co:\n{}\nto:\n{}'.format(co.data, to.data.numpy()))
 
 
+class TestEmbedding(TestLSTM):
+
+    seq_len = 5
+    vocab_size = 10
+    d_emb = 2
+
+    def test_forward(self):
+        x = np.random.randint(0, self.vocab_size, [self.batch_size, self.seq_len]).astype(np.int32)
+        c = L.EmbedID(self.vocab_size, self.d_emb)
+        t = nn.Embedding.from_chainer(c)
+
+        tx = Variable(torch.LongTensor(x.tolist()))
+
+        co = c(x)
+        to = t(tx)
+        self.assertTrue(np.allclose(co.data, to.data.numpy()), 'co:\n{}\nto:\n{}'.format(co.data, to.data.numpy()))
+
+
 if __name__ == '__main__':
     unittest.main()

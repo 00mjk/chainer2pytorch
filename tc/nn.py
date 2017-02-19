@@ -37,3 +37,13 @@ class Linear(nn.Linear):
         d_hid, d_in = self.weight.size()
         shape[-1] = d_hid
         return super().forward(input.view(-1, d_in)).view(*shape)
+
+
+class Embedding(nn.Embedding):
+
+    @classmethod
+    def from_chainer(cls, c):
+        vocab_size, d_emb = c.W.shape
+        t = cls(vocab_size, d_emb)
+        t.weight.data = torch.from_numpy(c.W.data)
+        return t
