@@ -31,9 +31,10 @@ class Linear(nn.Linear):
     @classmethod
     def from_chainer(cls, c):
         d_hid, d_in = c.W.shape
-        t = cls(d_in, d_hid)
+        t = cls(d_in, d_hid, bias=c.b is not None)
         replace_weight(t.weight, c.W)
-        replace_weight(t.bias, c.b)
+        if c.b is not None:
+            replace_weight(t.bias, c.b)
         return t
 
     def forward(self, input):
@@ -51,3 +52,28 @@ class Embedding(nn.Embedding):
         t = cls(vocab_size, d_emb)
         replace_weight(t.weight, c.W)
         return t
+
+
+class Maxout(nn.Module):
+
+    def __init__(self, d_in, d_out, pool_size):
+        super().__init__()
+        self.d_in, self.d_out, self.pool_size = d_in, d_out, pool_size
+        self.lin = Linear(d_in, d_out * pool_size)
+
+    @classmethod
+    def from_chainer(cls, c):
+        d_in, d_out, pool_size = c.linear.W.shape[-1], c.out_size, c.pool_size
+        t = cls(d_in, d_out, pool_size)
+        replace_weight(t.lin.weight, c.linear.W)
+        replace_weight(t.lin.bias, c.linear.b)
+        return t
+
+    def forward(self, inputs):
+        shape = list(inputs.size())
+        shape[-1] = self.d_out
+        shape.append(self.pool_size)
+        last_dim = len(shape) - 1
+        out = self.lin(inputs)
+        m, i = out.view(*shape).max(last_dim)
+        return m.squeeze(last_dim)
