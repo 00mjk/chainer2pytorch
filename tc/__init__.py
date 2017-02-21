@@ -8,7 +8,9 @@ class Variable(autograd.Variable):
     @classmethod
     def from_chainer(cls, c):
         T = torch.LongTensor if 'int' in str(c.dtype) else torch.Tensor
-        t = cls(T(c.data.tolist()), volatile=bool(c.volatile))
+        t = cls(T(c.data.tolist()))
+        if c.volatile != 'AUTO':
+            c.volatile = bool(c.volatile)
         return t
 
 
