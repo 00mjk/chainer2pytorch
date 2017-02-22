@@ -1,11 +1,36 @@
 import torch
+import chainer
 from torch import nn
 from chainer import functions as F
+
+from chainer.functions.activation.lstm import _extract_gates
 
 
 def replace_weight(t, c):
     t.data.copy_(torch.from_numpy(c.data))
 
+def split_clstm(var):
+    return [chainer.Variable(m[0]) for m in _extract_gates(var.data[None, :])]
+
+class LSTMCell(nn.LSTMCell):
+
+    @classmethod
+    def from_chainer(cls, c):
+        c_wa_ih, c_wi_ih, c_wf_ih, c_wo_ih = split_clstm(c.upward.W)
+        c_wa_hh, c_wi_hh, c_wf_hh, c_wo_hh = split_clstm(c.lateral.W)
+        c_ba, c_bi, c_bf, c_bo = split_clstm(c.upward.b)
+        d_hid, d_in = c_wa_ih.shape
+        t = cls(d_in, d_hid)
+        c_w_ih = F.concat([c_wi_ih, c_wf_ih, c_wa_ih, c_wo_ih], axis=0)
+        c_w_hh = F.concat([c_wi_hh, c_wf_hh, c_wa_hh, c_wo_hh], axis=0)
+        c_b = F.concat([c_bi, c_bf, c_ba, c_bo], axis=0)
+
+        replace_weight(t.weight_ih, c_w_ih)
+        replace_weight(t.weight_hh, c_w_hh)
+        replace_weight(t.bias_ih, c_b)
+        t.bias_hh.data.zero_()
+
+        return t
 
 class LSTM(nn.LSTM):
 
