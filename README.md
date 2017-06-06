@@ -20,7 +20,7 @@ c = L.Linear(10, 50)
 t = nn.Linear.from_chainer(c)
 
 c = L.NStepLSTM(1, 10, 20, 0)
-t = nn.from_chainer(c)
+t = nn.LSTM.from_chainer(c)
 ```
 
 Note that when do you a forward call, PyTorch's `LSTM` only gives the
